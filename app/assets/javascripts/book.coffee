@@ -1,7 +1,3 @@
-# Place all the behaviors and hooks related to the matching controller here.
-# All this logic will automatically be available in application.js.
-# You can use CoffeeScript in this file: http://coffeescript.org/
-
 
 //= require underscore
 //= require canvas-toBlob
@@ -109,7 +105,7 @@ class window.PaperJSApp
 class window.ColoringBook extends PaperJSApp
   # Coloring page files are located in public > coloring_pages
   @DEFAULT_COLORING_PAGE: "/coloring_pages/mandala.svg"
-  @DEFAULT_TOOL: "rainbowBucket"
+  @DEFAULT_TOOL: "paintBucket"
   constructor: (ops)->
     super ops # Adds core functionality from PaperJSApp
     console.log "✓ ColoringBook Functionality"
@@ -176,29 +172,17 @@ class window.ColoringBook extends PaperJSApp
       minDistance: 10
     
     cp = new ColorPalette()
+
     ###
-    Turns everything red.
-    ####
-    window.redBucket = new paper.Tool
-      name: "redBucket"
-      onMouseDown: (event)->
-        scope = this
-        hitResults = paper.project.hitTestAll event.point, hitOptions
-        _.each hitResults, (h)->
-          # Don't color black lines
-          if h.item.fillColor.brightness == 0
-            return
-          h.item.set
-            fillColor: "red"
-            
-              
+    MODULE III
     ###
-    Turns everything into a rainbow fill.
-    ####
-    window.rainbowBucket = new paper.Tool
-      name: "rainbowBucket"
-      onMouseDrag: (event)->
+
+    window.myInteraction1 = new paper.Tool
+      name: "Dark/Light Mode"
+      onMouseDrag: (event) ->
         scope = this
+        main = paper.project.getItem
+          name: "main"
         hitResults = paper.project.hitTestAll event.point, hitOptions
         _.each hitResults, (h)->
           # Don't color black lines
@@ -207,54 +191,44 @@ class window.ColoringBook extends PaperJSApp
           if h.item.ui
             return
           h.item.set
-            fillColor: 
-              gradient:
-                stops: ['yellow', 'red', 'blue']
-              origin: h.item.bounds.topLeft,
-              destination: h.item.bounds.bottomRight
-              
-    ###
-    MODULE III
-    ###
-    
-    window.historyTracker = new paper.Tool
-      name: "paintBucket"
-      onMouseDown: (event)->
-        scope = this
-        
-        palette = paper.project.getItem
-          name: "palette"
+            fillColor: main.getRandomColor()
           
-        if palette and palette.lastColor
-          hitResults = paper.project.hitTestAll event.point, hitOptions
-          _.each hitResults, (h)->
-            # Don't color black lines
-            if h.item.fillColor.brightness == 0
-              return
-            if h.item.ui
-              return
+          changeColor = ()->
             h.item.set
-              fillColor: palette.lastColor
-      
-    window.historyTracker = new paper.Tool
-      name: "historyTracker"
-      onMouseDown: (event)->
-        scope = this
-        alertify.error "TODO!"
-      
-    window.myInteraction1 = new paper.Tool
-      name: "myInteraction1"
-      onMouseDown: (event)->
-        scope = this
-        alertify.error "TODO!"
+              fillColor: main.getRandomColor()
+          
+          setInterval(changeColor,1)
+
+        
       
     window.myInteraction2 = new paper.Tool
-      name: "myInteraction2"  
-      onMouseDown: (event)->
+      name: "RainbowRGB"
+      isUIorLinePath: (p) -> 
+        return p.ui or p.fillColor.brightness == 0
+      onMouseDrag: (event)->
         scope = this
-        alertify.error "TODO!"
-              
-
+        hitResults = paper.project.hitTestAll event.point, hitOptions
+        _.each hitResults, (h)->
+          if h.item.fillColor.brightness == 0
+            return
+          RGBClick = h.item
+          
+          RGBClick.fillColor = "pink"
+          RGBClick.onFrame = () ->
+            this.fillColor.hue = this.fillColor.hue + 1
+          bluemode = () ->
+            clickedPath.fillColor = "blue"
+          greenmode = () ->
+            clickedPath.fillColor = "green"
+          redmode = () ->
+            clickedPath.fillColor = "red"
+          yellowmode = () ->
+            clickedPath.fillColor = "yellow"
+          purplemode = () ->
+            clickedPath.fillColor = "purple"
+            
+            
+            
     # MUST BE THE LAST LINES IN CREATE_TOOLS          
     scope.updateToolController()
     
@@ -269,12 +243,89 @@ class window.ColorPalette
     console.log "Making color palette"
     this.make_ui()
     this.bindInteraction()
+    
   make_ui: ()->
+    
+    
+    # ADDING SYSTEM STATUS INDICATOR
+    padding = 20
+    rectangle = new paper.Rectangle(0, 0, 220, 220)
+    indicator = new paper.Path.Rectangle
+      name: "indicator"
+      rectangle: rectangle
+      radius: 30
+      fillColor: "black"
+      strokeColor: "black"
+      strokeWidth: 2
+      position: paper.view.center
+   
+    # Position the indicator in the UI
+    indicator.scale(0.5)
+    indicator.pivot = indicator.bounds.topLeft
+    indicator.position = new paper.Point(padding, padding)
+
+
+    # Random Flicker Color Selector
+    g = new paper.Group
+      name: "flicker_selector"
+      ui: true
+      
+    padding = 20
+    rectangle = new paper.Rectangle(0, 0, 330, 330)
+    bg = new paper.Path.Rectangle
+      parent: g
+      name: "background"
+      rectangle: rectangle
+      radius: 90
+      fillColor: "#E6E6E6"
+      strokeColor: "black"
+      strokeWidth: 2
+      position: paper.view.center
+      shadowBlur: 5
+      shadowOffset: new paper.Point(1, 1)
+      shadowColor: new paper.Color(0, 0, 0, 0.5)
+      ui: true
+
+    c = new paper.Path.Circle
+      name: "main"
+      parent: g
+      radius: 85
+      fillColor: "white"
+      strokeColor: "black"
+      strokeWidth: 2
+      position: bg.bounds.center
+      ui: true
+    
+    cr = new paper.Path.Circle
+      name: "x_lower"
+      parent: g
+      radius: 85/4
+      fillColor: "white"
+      strokeColor: "black"
+      strokeWidth: 3
+      position: c.bounds.leftCenter.add(new paper.Point(-30, 0))
+      ui: true
+    cr = new paper.Path.Circle
+      name: "x_upper"
+      parent: g
+      radius: 85/4
+      fillColor: "white"
+      strokeColor: "black"
+      strokeWidth: 3
+      position: c.bounds.rightCenter.add(new paper.Point(30, 0))
+      ui: true
+      
+   
+    # # Position the indicator in the UI
+    g.scale(0.5)
+    g.pivot = g.bounds.topLeft
+    g.position = indicator.bounds.bottomLeft.add(new paper.Point(0, padding))
+      
     
     # DEFINE A COLOR RANGE
     num_of_swatches = 8
     c = new paper.Color("red")
-    hues = _.range(0, 360, 360/num_of_swatches)
+    hues = _.range(0, 360, 360/num_of_swatches) # [0, 60, 90, .. 360]
     
     # CREATE A CONTAINER
     g = new paper.Group
@@ -285,7 +336,7 @@ class window.ColorPalette
     _.each hues, (h, i)->
       color = c.clone()
       color.hue = h
-      color.saturation = 0.8
+      color.saturation = 0.9
       
       stroke_color = color.clone()
       stroke_color.brightness = stroke_color.brightness - 0.3
@@ -319,6 +370,56 @@ class window.ColorPalette
     g.scale(2)
     
   bindInteraction: ()->
+    main = paper.project.getItem
+        name: "main"
+        
+    main.set
+      getRandomColor: ()->
+        x_upper = paper.project.getItem
+          name: "x_upper"
+        x_lower = paper.project.getItem
+          name: "x_lower"  
+          
+        lower = x_lower.fillColor.brightness
+        upper = x_upper.fillColor.brightness
+        
+        console.log(lower, upper)
+        range = upper - lower
+        b = lower + (range * Math.random())
+        c = x_upper.fillColor.clone()
+        c.brightness = b
+        return c
+      onMouseDrag: (event)->
+        x_upper = paper.project.getItem
+          name: "x_upper"
+        x_lower = paper.project.getItem
+          name: "x_lower"  
+        vector = event.point.subtract(this.bounds.center)
+        movingLeft = Math.abs(vector.angle) < 90
+        
+        # Parametrize on distance from center of main circle. Cap values from -1 (farmost left) to 1 (farmost right)
+        movementFromCenter = vector.length / 100
+        if movementFromCenter > 1
+          movementFromCenter = 1
+        if movementFromCenter < 0
+          movementFromCenter = 0
+        if not movingLeft
+          movementFromCenter = -1 * movementFromCenter
+        
+        
+        
+        # Interpolate brightness values
+        base = 0.8
+        left = base
+        right = 1 - base
+        if movementFromCenter < 0 # Moving left, setting lower limit
+          movementFromCenter = 1 - (movementFromCenter * -1)
+          console.log("Left", movementFromCenter, left * movementFromCenter)
+          x_lower.fillColor.brightness = 0
+        else
+          console.log("Right", base + (right * movementFromCenter))
+          x_upper.fillColor.brightness = 100
+        
     palette = paper.project.getItem
       name: "palette"
     
@@ -331,6 +432,17 @@ class window.ColorPalette
     _.each swatches, (s)->
       s.set
         onMouseDown: (e)->
+          # Grab the object
+          indicator = paper.project.getItem
+            name: "indicator"
+          main = paper.project.getItem
+            name: "main"
+          xu = paper.project.getItem
+            name: "x_upper"
+          xl = paper.project.getItem
+            name: "x_lower"
           palette.lastColor = this.fillColor
-          
-          
+          indicator.fillColor = this.fillColor
+          main.fillColor = this.fillColor
+          xu.fillColor = this.fillColor
+          xl.fillColor = this.fillColor
